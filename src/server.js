@@ -1,27 +1,31 @@
-const net = require('net');
+const net = require("net");
+const fs = require("fs");
 
-const HOST = '0.0.0.0';
-const PORT = 8234;
+const HOST = "0.0.0.0"; 
+const PORT = 5000;    
 
 const server = net.createServer((socket) => {
-    console.log('Cliente conectado:', socket.remoteAddress);
+    const clientIP = socket.remoteAddress;
+    console.log(" Leitor conectado:", clientIP);
 
-    socket.on('data', (data) => {
-        const mensagem = data.toString().trim();
-        console.log('Dados recebidos:', mensagem);
+    socket.on("data", (data) => {
+        const hex = data.toString("hex").toUpperCase();
+        const timestamp = new Date().toISOString();
 
-        // Aqui você pode tratar os dados, salvar em arquivo ou banco, etc.
+        console.log(`[${timestamp}] Dados recebidos: ${hex}`);
+
+        fs.appendFileSync("leituras.txt", `[${timestamp}] ${hex}\n`);
     });
 
-    socket.on('end', () => {
-        console.log('Cliente desconectado');
+    socket.on("end", () => {
+        console.log("🔌 Leitor desconectado:", clientIP);
     });
 
-    socket.on('error', (err) => {
-        console.error('Erro:', err.message);
+    socket.on("error", (err) => {
+        console.error("Erro:", err.message);
     });
 });
 
 server.listen(PORT, HOST, () => {
-    console.log(`Servidor TCP ouvindo em ${HOST}:${PORT}`);
+    console.log(`Servidor aguardando conexões em ${HOST}:${PORT}`);
 });
