@@ -1,21 +1,40 @@
 const net = require("net");
+const fs = require("fs");
 
-const client = new net.Socket();
-client.connect(5000, "192.168.0.10", () => {
-  console.log("Conectado ao leitor");
+const HOST = "0.0.0.0";
+const PORT = 5000;
 
-  const command = Buffer.from([0x04, 0x00, 0x27, 0x01]); 
-  client.write(command);
+let ultimaMensagem = "";
+
+const server = net.createServer((socket) => {
+  const ip = socket.remoteAddress;
+  console.log(`Leitor conectado: ${ip}`);
+
+  socket.on("data", (data) => {
+    const hex = data.toString("hex").toUpperCase();
+    const ascii = data.toString("ascii").replace(/\W/g, "");
+    const timestamp = new Date().toISOString();
+
+    if (hex !== ultimaMensagem) {
+      ultimaMensagem = hex;
+
+      console.log(`\n[${timestamp}] Dados recebidos:`);
+      console.log(`HEX  : ${hex}`);
+      console.log(`ASCII: ${ascii}`);
+
+      fs.appendFileSync("leituras.txt", `[${timestamp}] HEX: ${hex} | ASCII: ${ascii}\n`);
+    }
+  });
+
+  socket.on("end", () => {
+    console.log("Leitor desconectado:", ip);
+  });
+
+  socket.on("error", (err) => {
+    console.error("Erro:", err.message);
+  });
 });
 
-client.on("data", (data) => {
-  console.log("Dados recebidos:", data.toString("hex"));
-});
-
-client.on("error", (err) => {
-  console.error("Erro:", err.message);
-});
-
-client.on("close", () => {
-  console.log("Conexão encerrada");
+server.listen(PORT, HOST, () => {
+  console.log(`Servidor TCP escutando em ${HOST}:${PORT}`);
 });
