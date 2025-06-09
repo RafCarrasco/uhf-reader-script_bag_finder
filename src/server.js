@@ -1,40 +1,23 @@
-const net = require("net");
-const fs = require("fs");
-
-const HOST = "0.0.0.0";
+const express = require("express");
+const app = express();
 const PORT = 5000;
 
-let ultimaMensagem = "";
+// Permite que o body venha como JSON ou texto bruto
+app.use(express.json());
+app.use(express.text({ type: "*/*" }));
 
-const server = net.createServer((socket) => {
-  const ip = socket.remoteAddress;
-  console.log(`Leitor conectado: ${ip}`);
+app.post("/", (req, res) => {
+  const data = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+  const timestamp = new Date().toISOString();
 
-  socket.on("data", (data) => {
-    const hex = data.toString("hex").toUpperCase();
-    const ascii = data.toString("ascii").replace(/\W/g, "");
-    const timestamp = new Date().toISOString();
+  console.log(`\n[${timestamp}] 📦 Dados recebidos do leitor:`);
+  console.log(data);
 
-    if (hex !== ultimaMensagem) {
-      ultimaMensagem = hex;
+  // Aqui você pode tratar, salvar no Firebase etc.
 
-      console.log(`\n[${timestamp}] Dados recebidos:`);
-      console.log(`HEX  : ${hex}`);
-      console.log(`ASCII: ${ascii}`);
-
-      fs.appendFileSync("leituras.txt", `[${timestamp}] HEX: ${hex} | ASCII: ${ascii}\n`);
-    }
-  });
-
-  socket.on("end", () => {
-    console.log("Leitor desconectado:", ip);
-  });
-
-  socket.on("error", (err) => {
-    console.error("Erro:", err.message);
-  });
+  res.sendStatus(200); // Confirma pro leitor que recebeu
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Servidor TCP escutando em ${HOST}:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor HTTP escutando em http://0.0.0.0:${PORT}`);
 });
