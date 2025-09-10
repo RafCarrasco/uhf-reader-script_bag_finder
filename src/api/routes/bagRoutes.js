@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import express from 'express';
 import { BagsController } from '../controllers/bagController.js';
 
-const r = Router();
+const router = express.Router();
 
-r.get('/', BagsController.list);
-r.get('/:id', BagsController.get);
-r.get('/:id/readings', BagsController.readings);
+router.get('/', BagsController.list);
+router.get('/:id', BagsController.get);
+router.get('/:id/readings', BagsController.readings);
 
-export default r;
+export default router;
