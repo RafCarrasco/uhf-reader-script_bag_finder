@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, company_id, full_name, email, phone, role, is_active, created_at 
+      `SELECT id, company_id, full_name, cpf, email, phone, role, is_active, created_at 
        FROM users 
        WHERE id = ? 
        LIMIT 1`,

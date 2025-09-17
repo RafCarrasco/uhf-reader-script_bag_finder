@@ -7,4 +7,6 @@ router.get('/', BagsController.list);
 router.get('/:id', BagsController.get);
 router.get('/:id/readings', BagsController.readings);
 
+router.get('/traveler/:travelerId/history', BagsController.historyByTraveler);
+
 export default router;

@@ -1,4 +1,9 @@
-import { listBags, getBag, listReadingsByBag } from '../../db/bagRepository.js';
+import { 
+  listBags, 
+  getBag, 
+  listReadingsByBag, 
+  listTravelerBagHistory 
+} from '../../db/bagRepository.js';
 
 export const BagsController = {
   async list(req, res) {
@@ -28,6 +33,17 @@ export const BagsController = {
       res.json(rows);
     } catch (e) {
       console.error('[bags:readings] error', e);
+      res.status(500).json({ error: 'internal_error' });
+    }
+  },
+
+  async historyByTraveler(req, res) {
+    try {
+      const { travelerId } = req.params;
+      const rows = await listTravelerBagHistory(travelerId);
+      res.json(rows);
+    } catch (e) {
+      console.error('[bags:historyByTraveler] error', e);
       res.status(500).json({ error: 'internal_error' });
     }
   }

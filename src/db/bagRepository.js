@@ -45,3 +45,26 @@ export async function listReadingsByBag(bagId, limit = 100) {
   );
   return rows;
 }
+
+export async function listTravelerBagHistory(travelerId) {
+  const [rows] = await pool.query(
+    `SELECT 
+        t.id AS trip_id,
+        t.origin,
+        t.destination,
+        b.id AS bag_id,
+        b.description,
+        e.status AS last_status,
+        e.created_at AS status_time
+     FROM trips t
+     JOIN bags b ON b.trip_id = t.id
+     JOIN bag_status_events e ON e.bag_id = b.id
+     WHERE t.user_id = ?
+       AND e.created_at = (
+         SELECT MAX(created_at) FROM bag_status_events WHERE bag_id = b.id
+       )
+     ORDER BY t.created_at DESC, e.created_at DESC`,
+    [travelerId]
+  );
+  return rows;
+}
