@@ -1,7 +1,7 @@
-const net = require("net");
+import net from "net";
 
-const HOST = "192.168.0.10";
-const PORT = 5000;
+const HOST = "192.168.0.10";  // IP do leitor
+const PORT = 5000;            // Porta do TCP
 
 let ultimaLeitura = "";
 
