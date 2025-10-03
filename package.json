@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "api": "nodemon src/start-api.js",
-    "reader": "node src/reader/server.js",
+    "reader": "nodemon src/start-reader.js",
     "both": "nodemon src/index.js"
   },
   "dependencies": {
