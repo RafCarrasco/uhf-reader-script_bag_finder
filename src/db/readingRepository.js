@@ -20,9 +20,10 @@ export async function saveBagReading(epc, timestamp, location) {
     }
 
     const [bag] = await conn.query(
-      "SELECT * FROM bags WHERE id = (SELECT bag_id FROM rfid_tags WHERE id = ?)",
+      "SELECT b.* FROM bags b INNER JOIN bag_tags bt ON b.id = bt.bag_id WHERE bt.rfid_id = ? LIMIT 1",
       [rfidId]
     );
+
 
     let bagId;
     if (bag.length === 0) {
@@ -32,7 +33,7 @@ export async function saveBagReading(epc, timestamp, location) {
          VALUES (?, NULL, 'CHECKED_IN', NOW())`,
         [bagId]
       );
-      await conn.query("UPDATE rfid_tags SET bag_id = ? WHERE id = ?", [bagId, rfidId]);
+      await conn.query("INSERT IGNORE INTO bag_tags (bag_id, rfid_id) VALUES (?, ?)", [bagId, rfidId]);
     } else {
       bagId = bag[0].id;
     }
