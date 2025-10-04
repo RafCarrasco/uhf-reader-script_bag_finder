@@ -46,5 +46,21 @@ export const BagsController = {
       console.error('[bags:historyByTraveler] error', e);
       res.status(500).json({ error: 'internal_error' });
     }
-  }
+  },
+
+  async registerReading(req, res) {
+    try {
+      const { epc, timestamp, location } = req.body;
+
+      if (!epc) {
+        return res.status(400).json({ error: "EPC ausente na requisição" });
+      }
+
+      const result = await saveBagReading(epc, timestamp, location);
+      res.json({ success: true, result });
+    } catch (e) {
+      console.error('[bags:registerReading] error', e);
+      res.status(500).json({ error: 'internal_error' });
+    }
+  },
 };

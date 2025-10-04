@@ -6,6 +6,7 @@ const router = express.Router();
 router.get('/', BagsController.list);
 router.get('/:id', BagsController.get);
 router.get('/:id/readings', BagsController.readings);
+router.post('/readings', BagsController.registerReading);
 
 router.get('/traveler/:travelerId/history', BagsController.historyByTraveler);
 

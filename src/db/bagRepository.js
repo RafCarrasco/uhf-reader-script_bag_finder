@@ -68,3 +68,18 @@ export async function listTravelerBagHistory(travelerId) {
   );
   return rows;
 }
+
+export async function saveBagReading(epc, timestamp, location) {
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO bag_readings (epc_code, read_time, location)
+       VALUES (?, ?, ?)`,
+      [epc, timestamp, location || null]
+    );
+
+    return { id: result.insertId, epc, timestamp, location };
+  } catch (err) {
+    console.error('[saveBagReading] Erro ao salvar leitura:', err);
+    throw err;
+  }
+}
