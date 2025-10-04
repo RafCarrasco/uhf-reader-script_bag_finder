@@ -1,4 +1,4 @@
-import { saveReading } from '../../db/readingRepository.js';
+import { saveBagReading } from '../../db/readingRepository.js';
 
 export const ReadingController = {
   async create(req, res) {
