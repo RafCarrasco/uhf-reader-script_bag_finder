@@ -18,17 +18,17 @@ export async function saveBagReading(epc, timestamp, location) {
         "INSERT INTO rfid_tags (id, code, created_at) VALUES (?, ?, NOW())",
         [rfidId, epc]
       );
+      console.log(`[DB] Nova tag registrada: ${epc}`);
     } else {
       rfidId = tags[0].id;
     }
 
     const readingId = uuidv4();
-await conn.query(
-  `INSERT INTO bag_readings (id, rfid_id, location, reader_ip, read_time)
-   VALUES (?, ?, ?, ?, NOW())`,
-  [readingId, rfidId, location || null, reader_ip || null]
-);
-
+    await conn.query(
+      `INSERT INTO bag_readings (id, rfid_id, location, read_time)
+       VALUES (?, ?, ?, NOW())`,
+      [readingId, rfidId, location || null]
+    );
 
     await conn.commit();
 
