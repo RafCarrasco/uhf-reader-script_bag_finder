@@ -29,10 +29,11 @@ export async function saveBagReading(epc, timestamp, location) {
     if (bag.length === 0) {
       bagId = uuidv4();
       await conn.query(
-        `INSERT INTO bags (id, traveler_id, status, created_at)
-         VALUES (?, NULL, 'CHECKED_IN', NOW())`,
+        `INSERT INTO bags (id, status, created_at)
+   VALUES (?, 'CHECKED_IN', NOW())`,
         [bagId]
       );
+
       await conn.query("INSERT IGNORE INTO bag_tags (bag_id, rfid_id) VALUES (?, ?)", [bagId, rfidId]);
     } else {
       bagId = bag[0].id;
