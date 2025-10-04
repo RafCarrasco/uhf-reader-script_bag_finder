@@ -23,11 +23,12 @@ export async function saveBagReading(epc, timestamp, location) {
     }
 
     const readingId = uuidv4();
-    await conn.query(
-      `INSERT INTO bag_readings (id, rfid_id, location, reader_ip, read_time)
-       VALUES (?, ?, ?, ?, ?)`,
-      [readingId, rfidId, location || "reader-01", "192.168.0.10", timestamp]
-    );
+await conn.query(
+  `INSERT INTO bag_readings (id, rfid_id, location, reader_ip, read_time)
+   VALUES (?, ?, ?, ?, NOW())`,
+  [readingId, rfidId, location || null, reader_ip || null]
+);
+
 
     await conn.commit();
 
