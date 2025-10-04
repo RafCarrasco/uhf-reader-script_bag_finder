@@ -1,7 +1,7 @@
 import { pool } from "./db.js";
 import { v4 as uuidv4 } from "uuid";
 
-export async function saveReading({ epc, location, reader_ip }) {
+export async function saveBagReading(epc, timestamp, location) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -25,15 +25,17 @@ export async function saveReading({ epc, location, reader_ip }) {
     const readingId = uuidv4();
     await conn.query(
       `INSERT INTO bag_readings (id, rfid_id, location, reader_ip, read_time)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [readingId, rfidId, location || null, reader_ip || null]
+       VALUES (?, ?, ?, ?, ?)`,
+      [readingId, rfidId, location || "reader-01", "192.168.0.10", timestamp]
     );
 
     await conn.commit();
 
-    return { id: readingId, epc, rfid_id: rfidId, location, reader_ip };
+    console.log(`[DB] Nova leitura salva para EPC ${epc}`);
+    return { id: readingId, epc, rfid_id: rfidId, location };
   } catch (err) {
     await conn.rollback();
+    console.error("[DB ERROR] Falha ao salvar leitura:", err);
     throw err;
   } finally {
     conn.release();

@@ -5,6 +5,8 @@ import {
   listTravelerBagHistory 
 } from '../../db/bagRepository.js';
 
+import { saveBagReading } from '../../db/readingRepository.js'; // ✅ IMPORT NECESSÁRIA
+
 export const BagsController = {
   async list(req, res) {
     try {
@@ -57,6 +59,7 @@ export const BagsController = {
       }
 
       const result = await saveBagReading(epc, timestamp, location);
+      console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso`);
       res.json({ success: true, result });
     } catch (e) {
       console.error('[bags:registerReading] error', e);
