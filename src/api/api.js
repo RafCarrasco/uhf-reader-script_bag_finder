@@ -4,6 +4,10 @@ import { pingDB } from '../db/db.js';
 import bagRoutes from './routes/bagRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import rfidTagRoutes from "./routes/rfidTagRoutes.js";
+import readingRoutes from "./routes/readingRoutes.js";
+
+
 
 const app = express();
 
