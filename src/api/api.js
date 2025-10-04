@@ -22,6 +22,8 @@ app.get('/health', async (_req, res) => {
 app.use('/bags', bagRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use("/rfid_tags", rfidTagRoutes);
+app.use("/bags/readings", readingRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 
