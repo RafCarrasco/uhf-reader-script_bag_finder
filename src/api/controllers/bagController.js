@@ -67,25 +67,26 @@ export const BagsController = {
     }
   },
 
-  async timeline(req, res) {
-    try {
-      const { id } = req.params;
-      const readings = await listReadingsByBagId(id);
+async timeline(req, res) {
+  try {
+    const { id } = req.params;
+    const readings = await listReadingsByBagId(id);
 
-      if (!readings || readings.length === 0) {
-        return res.status(404).json({ error: "Nenhuma leitura encontrada para esta mala" });
-      }
-
-      const timeline = readings.map(r => ({
-        time: r.read_time,
-        message: `Sua mala passou por ${r.location}`,
-        epc: r.epc
-      }));
-
-      res.json(timeline);
-    } catch (e) {
-      console.error("[bags:timeline] error", e);
-      res.status(500).json({ error: "internal_error" });
+    if (!readings || readings.length === 0) {
+      return res.status(404).json({ error: "Nenhuma leitura encontrada para esta mala" });
     }
+
+    const timeline = readings.map(r => ({
+      time: r.read_time,
+      message: `Sua mala passou por ${r.location}`,
+      epc: r.epc
+    }));
+
+    res.json(timeline);
+  } catch (e) {
+    console.error("[bags:timeline] error", e);
+    res.status(500).json({ error: "internal_error" });
   }
+}
+
 };
