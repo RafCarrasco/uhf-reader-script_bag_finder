@@ -1,6 +1,24 @@
 import { pool } from "./db.js";
 import { v4 as uuidv4 } from "uuid";
 
+const locais = [
+  "São Paulo",
+  "Miami",
+  "Nova York",
+  "Paris",
+  "Dubai",
+  "Tóquio",
+  "Pequim",
+  "Londres",
+  "Berlim",
+  "Los Angeles",
+  "Toronto",
+  "Madri",
+  "Cairo",
+  "Johannesburgo",
+  "Sydney"
+];
+
 export async function saveBagReading(epc, timestamp, location) {
   const conn = await pool.getConnection();
   try {
@@ -26,48 +44,43 @@ export async function saveBagReading(epc, timestamp, location) {
       [rfidId]
     );
 
+
+    let bagId;
     if (bag.length === 0) {
-      console.warn(`[DB] Tag ${epc} sem vínculo com bag — leitura ignorada.`);
-      await conn.rollback();
-      return null;
-    }
-
-    const bagId = bag[0].id;
-
-    const [activeTrip] = await conn.query(
-      `SELECT t.id FROM trips t
-       JOIN users u ON u.id = t.user_id
-       WHERE u.role = 'TRAVELER' AND (t.is_done = 0 OR t.is_done IS NULL)
-       ORDER BY t.created_at DESC
-       LIMIT 1`
-    );
-
-    if (activeTrip.length > 0) {
-      const tripId = activeTrip[0].id;
+      bagId = uuidv4();
       await conn.query(
-        "UPDATE bags SET trip_id = ?, updated_at = NOW() WHERE id = ?",
-        [tripId, bagId]
+        `INSERT INTO bags (id, created_at, updated_at)
+     VALUES (?, NOW(), NOW())`,
+        [bagId]
       );
+
+      await conn.query(
+        "INSERT IGNORE INTO bag_tags (bag_id, rfid_id) VALUES (?, ?)",
+        [bagId, rfidId]
+      );
+    } else {
+      bagId = bag[0].id;
     }
 
-    // 4️⃣ Registra leitura
+
     const readingId = uuidv4();
     const finalLocation = location || "Reader-01";
     await conn.query(
-      "INSERT INTO bag_readings (id, rfid_id, location, read_time) VALUES (?, ?, ?, NOW())",
-      [readingId, rfidId, finalLocation]
+      `INSERT INTO bag_readings (id, rfid_id, location, read_time)
+       VALUES (?, ?, ?, NOW())`,
+      [readingId, rfidId, location || "Desconhecida"]
     );
 
     // 5️⃣ Atualiza status da bag
     await conn.query(
-      "UPDATE bags SET status = 'IN_TRANSIT', updated_at = NOW() WHERE id = ?",
+      `UPDATE bags SET status = 'IN_TRANSIT', updated_at = NOW() WHERE id = ?`,
       [bagId]
     );
 
     await conn.commit();
 
-    console.log(`[DB] Leitura registrada → EPC ${epc} → bag ${bagId}`);
-    return { id: readingId, epc, bag_id: bagId, rfid_id: rfidId, location: finalLocation };
+    console.log(`[DB] Leitura registrada para EPC ${epc} → bag ${bagId}`);
+    return { id: readingId, epc, rfid_id: rfidId, bag_id: bagId, location };
   } catch (err) {
     await conn.rollback();
     console.error("[DB ERROR] Falha ao salvar leitura:", err);
@@ -82,13 +95,12 @@ export async function listReadingsByBagId(bagId) {
   try {
     const [rows] = await conn.query(
       `
-  SELECT br.id, br.location, br.read_time, rt.epc AS epc
-  FROM bag_readings br
-  INNER JOIN rfid_tags rt ON br.rfid_id = rt.id
-  INNER JOIN bag_tags bt ON bt.rfid_id = rt.id
-  WHERE bt.bag_id = ?
-  ORDER BY br.read_time ASC
-  `,
+      SELECT br.id, br.location, br.read_time, rt.code AS epc
+      FROM bag_readings br
+      INNER JOIN rfid_tags rt ON br.rfid_id = rt.id
+      WHERE rt.bag_id = ?
+      ORDER BY br.read_time ASC
+      `,
       [bagId]
     );
 
