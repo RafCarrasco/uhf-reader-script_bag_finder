@@ -4,6 +4,7 @@ import { pingDB } from '../db/db.js';
 import bagRoutes from './routes/bagRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import tripRoutes from "./routes/tripRoutes.js";
 import rfidTagRoutes from "./routes/rfidTagRoutes.js";
 import readingRoutes from "./routes/readingRoutes.js";
 
@@ -26,6 +27,7 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use("/rfid_tags", rfidTagRoutes);
 app.use("/bags/readings", readingRoutes);
+app.use("/trips", tripRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 

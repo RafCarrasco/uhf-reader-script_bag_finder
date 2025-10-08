@@ -32,17 +32,18 @@ export async function getBag(bagId) {
 export async function listReadingsByBag(bagId, limit = 100) {
   const [rows] = await pool.query(
     `SELECT r.id,
-            rt.code        AS epc_code,
-            r.read_time    AS reading_at,
-            r.location,
-            r.reader_ip
-       FROM bag_tags bt
-       JOIN rfid_tags   rt ON rt.id = bt.rfid_id
-       JOIN bag_readings r ON r.rfid_id = rt.id
-      WHERE bt.bag_id = ?
-     ORDER BY r.read_time DESC
-     LIMIT ?`, [bagId, limit]
+          rt.epc        AS epc_code,
+          r.read_time    AS reading_at,
+          r.location,
+          r.reader_ip
+     FROM bag_tags bt
+     JOIN rfid_tags   rt ON rt.id = bt.rfid_id
+     JOIN bag_readings r ON r.rfid_id = rt.id
+    WHERE bt.bag_id = ?
+   ORDER BY r.read_time DESC
+   LIMIT ?`, [bagId, limit]
   );
+
   return rows;
 }
 

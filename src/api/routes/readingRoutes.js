@@ -3,6 +3,6 @@ import { ReadingController } from "../controllers/readingController.js";
 
 const router = express.Router();
 
-router.post("/", ReadingController.create);
+router.post("/process-tag", ReadingController.create);
 
 export default router;
