@@ -84,3 +84,21 @@ export async function saveBagReading(epc, timestamp, location) {
     throw err;
   }
 }
+
+export async function listStatusEventsByBag(bagId) {
+    const [rows] = await pool.query(
+        `SELECT 
+            bse.id, 
+            bse.status, 
+            bse.destination, 
+            bse.created_at as event_time, 
+            bse.is_final_destination,
+            rt.code as epc_code
+         FROM bag_status_events bse
+         JOIN rfid_tags rt ON rt.id = bse.rfid_tag_id
+         WHERE bse.bag_id = ? 
+         ORDER BY event_time ASC`,
+        [bagId]
+    );
+    return rows;
+}

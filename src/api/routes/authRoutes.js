@@ -10,7 +10,10 @@ router.post('/login', async (req, res) => {
     console.log('[Auth] Tentando login para:', email);
 
     const [rows] = await pool.query(
-      'SELECT * FROM users WHERE email = ? AND password = ? AND is_active = 1',
+      `SELECT 
+        id, company_id, full_name, cpf, email, role, is_active 
+      FROM users 
+      WHERE email = ? AND password = ? AND is_active = 1`,
       [email, password]
     );
 
@@ -18,10 +21,12 @@ router.post('/login', async (req, res) => {
 
     if (rows.length > 0) {
       const user = rows[0];
+
       res.json({
         id: user.id,
         company_id: user.company_id,
         full_name: user.full_name,
+        cpf: user.cpf,
         email: user.email,
         role: user.role,
         is_active: user.is_active === 1,

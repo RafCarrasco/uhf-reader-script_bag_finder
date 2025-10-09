@@ -8,6 +8,7 @@ import {
 import { saveBagReading, listReadingsByBagId } from '../../db/readingRepository.js';
 import { pool } from "../../db/db.js";
 import { v4 as uuidv4 } from "uuid";
+import { listStatusEventsByBag } from '../../db/bagRepository.js'; 
 
 export const BagsController = {
   async list(req, res) {
@@ -52,9 +53,6 @@ export const BagsController = {
     }
   },
 
-
-
-
   async registerReading(req, res) {
     try {
       const { epc, timestamp, location } = req.body;
@@ -63,34 +61,20 @@ export const BagsController = {
         return res.status(400).json({ error: "EPC ausente na requisição" });
       }
 
-      // Salvando a leitura
-      const result = await saveBagReading(epc, timestamp, location);
-      console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso`);
+      // Chama a lógica de negócio principal, que agora SALVA o evento de status
+      const result = await saveBagReading(epc, timestamp, location); 
 
-      // Processando o EPC para adicionar o status de embarque/desembarque na tabela bag_status_events
-      const baseEPC = epc.substring(0, 27);
+      // 💡 Envia a atualização em tempo real para o Flutter via WebSocket
+      broadcast({
+        type: 'BAG_STATUS_UPDATE',
+        epc: result.epc,
+        bag_id: result.bag_id,
+        status: result.status,          
+        destination: result.destination, 
+        timestamp: new Date().toISOString()
+      });
 
-      // Buscando o destino da mala
-      const [lastEvent] = await pool.query(
-        "SELECT destination FROM bag_status_events WHERE rfid_tag = ? ORDER BY created_at DESC LIMIT 1",
-        [epc]
-      );
-
-      const currentDestination = lastEvent.length > 0 ? lastEvent[0].destination : "Lisboa"; // Começa com Lisboa
-
-      // Alterna entre embarque e desembarque
-      const status = currentDestination === location ? "embarque" : "desembarque";
-      const destination = status === "embarque" ? location : "Brasil"; // Próximo destino
-
-      // Insere o evento de status na bag_status_events
-      const eventId = uuidv4();
-      await pool.query(
-        "INSERT INTO bag_status_events (id, bag_id, status, created_at, destination, rfid_tag) VALUES (?, ?, ?, ?, ?, ?)",
-        [eventId, epc, status, timestamp || new Date(), destination, epc]
-      );
-
-      console.log(`[DB] Evento registrado → EPC ${epc} → status: ${status} → destino: ${destination}`);
-
+      console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso. Novo Status: ${result.status}`);
       res.json({ success: true, result });
     } catch (e) {
       console.error('[bags:registerReading] error', e);
@@ -98,28 +82,30 @@ export const BagsController = {
     }
   },
 
+  async timeline(req, res) {
+    try {
+      const { id } = req.params;
+      // Usa o novo DAO que busca os eventos de status reais
+      const events = await listStatusEventsByBag(id);
 
+      if (!events || events.length === 0) {
+        return res.status(404).json({ error: "Nenhum evento de status encontrado para esta mala" });
+      }
 
-async timeline(req, res) {
-  try {
-    const { id } = req.params;
-    const readings = await listReadingsByBagId(id);
+      // Mapeia os eventos para o formato de timeline
+      const timeline = events.map(e => ({
+        time: e.event_time,
+        status: e.status, 
+        destination: e.destination,
+        message: `Mala **${e.status.toUpperCase()}** com destino a ${e.destination}` + (e.is_final_destination ? ' (Destino Final)' : ''),
+        epc: e.epc_code // Opcional, mas útil para debug
+      }));
 
-    if (!readings || readings.length === 0) {
-      return res.status(404).json({ error: "Nenhuma leitura encontrada para esta mala" });
+      res.json(timeline);
+    } catch (e) {
+      console.error("[bags:timeline] error", e);
+      res.status(500).json({ error: "internal_error" });
     }
-
-    const timeline = readings.map(r => ({
-      time: r.read_time,
-      message: `Sua mala passou por ${r.location}`,
-      epc: r.epc
-    }));
-
-    res.json(timeline);
-  } catch (e) {
-    console.error("[bags:timeline] error", e);
-    res.status(500).json({ error: "internal_error" });
   }
-}
-
 };
+
