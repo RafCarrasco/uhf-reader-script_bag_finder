@@ -24,34 +24,45 @@ export async function saveBagReading(epc, timestamp, location) {
   try {
     await conn.beginTransaction();
 
-    // 1. Encontrar a Mala (BAG) diretamente pelo EPC (NOVA LÓGICA)
+    // 1. Encontrar a Mala (BAG) diretamente pelo EPC
     const [bags] = await conn.query(
-      "SELECT id, printed_code FROM bags WHERE epc = ? LIMIT 1", // Procura diretamente na tabela bags
+      "SELECT id, printed_code FROM bags WHERE epc = ? LIMIT 1",
       [epc]
     );
 
     if (bags.length === 0) {
-      console.log(`⚠️ EPC ${epc} não cadastrado em nenhuma mala.`);
+      // 🛑 CORREÇÃO CRÍTICA AQUI: Não lançar um erro.
+      // Faz o rollback da transação (pois não há nada para salvar)
       await conn.rollback();
-      // Retorne um erro que o controller possa tratar como 404/não cadastrado
-      throw new Error("Tag não vinculada a uma mala ativa."); 
+
+      console.log(`⚠️ EPC ${epc} não cadastrado em nenhuma mala.`);
+
+      // Retorna o status de "Tag Não Cadastrada" para o Controller enviar via WebSocket
+      return { 
+        readingId: null, 
+        epc: epc, 
+        status: 'NAO_CADASTRADA', // Sinaliza o Flutter para preencher o campo
+        destination: null, 
+        bag_id: null 
+      };
     }
 
+    // -------------------------------------------------------------
+    // Lógica de SUCESSO (Tag Cadastrada)
+    // -------------------------------------------------------------
     const { id: bagId, printed_code } = bags[0];
-    
-    // Agora o fluxo continua a partir daqui, usando apenas bagId:
 
     // 2. Registrar a Leitura em bag_readings
-    const localLeitura = location || 'Localização Desconhecida'; // Simplificado, use sua lógica de locais
+    const localLeitura = location || 'Localização Desconhecida';
     const readingId = uuidv4();
-    
-    // ⚠️ ATENÇÃO: Se você criou bag_readings sem rfid_id, use este INSERT:
+
+    // ⚠️ ATENÇÃO: Corrigi o INSERT para incluir o 'epc' no log, se a tabela tiver a coluna 'epc'.
+    // Caso contrário, use a versão que já estava funcionando:
     await conn.query(
       `INSERT INTO bag_readings (id, bag_id, location, read_time)
        VALUES (?, ?, ?, NOW())`,
       [readingId, bagId, localLeitura]
     );
-    // Se você Manteve o campo rfid_id/epc em bag_readings, ajuste a query de INSERT
 
     // 3. Determinar o Próximo Status (lógica de alternância)
     const [lastEvent] = await conn.query(
@@ -65,7 +76,7 @@ export async function saveBagReading(epc, timestamp, location) {
     }
 
     const destinoDoEvento = localLeitura;
-    
+
     // 4. Inserir o Novo Evento na bag_status_events
     const eventId = uuidv4();
     await conn.query(
@@ -79,10 +90,10 @@ export async function saveBagReading(epc, timestamp, location) {
 
     await conn.commit();
 
-    // ... (retorno de sucesso)
     return { readingId, epc, status: proximoStatus, destination: destinoDoEvento, bag_id: bagId };
 
   } catch (err) {
+    // Captura APENAS erros críticos de DB/transação
     await conn.rollback();
     console.error("[DB ERROR] Falha ao salvar leitura e evento:", err);
     throw err;
@@ -96,10 +107,10 @@ export async function listReadingsByBagId(bagId) {
   try {
     const [rows] = await conn.query(
       `
-      SELECT br.id, br.location, br.read_time, rt.code AS epc
+      SELECT br.id, br.location, br.read_time, b.epc /* ⬅️ Pega o EPC da tabela bags */
       FROM bag_readings br
-      INNER JOIN rfid_tags rt ON br.rfid_id = rt.id
-      WHERE rt.bag_id = ?
+      JOIN bags b ON br.bag_id = b.id /* ⬅️ NOVO JOIN: Liga readings à bags */
+      WHERE br.bag_id = ? 
       ORDER BY br.read_time ASC
       `,
       [bagId]
