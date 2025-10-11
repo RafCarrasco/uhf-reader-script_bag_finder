@@ -156,7 +156,7 @@ export async function findByEpc(epc) {
     `
     SELECT 
       b.id,
-      b.description,
+      b.destination,
       b.rfid_tag AS epc,
       b.status,
       b.created_at,
