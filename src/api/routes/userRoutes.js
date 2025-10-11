@@ -1,5 +1,6 @@
 import express from 'express';
-import { pool } from '../../db/db.js';
+import { pool } from '../../db/db.js'; 
+import { getUserByCpfController, addUserController, getUserById } from '../controllers/userController.js';  
 
 const router = express.Router();
 
@@ -23,5 +24,10 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'server_error' });
   }
 });
+
+
+router.get('/cpf/:cpf', getUserByCpfController); 
+
+router.post('/', addUserController);
 
 export default router;

@@ -91,3 +91,21 @@ for (const bag of bags) {
         conn.release();
     }
 }
+
+
+export async function getBagItineraryAndLastEvent(bagId) {
+    const [rows] = await pool.query(
+        `SELECT 
+            t.origin, t.connection, t.destination,
+            b.id AS bag_id,
+            bse.status AS last_status, 
+            bse.destination AS last_location
+         FROM bags b
+         JOIN trips t ON t.id = b.trip_id
+         LEFT JOIN bag_status_events bse ON bse.bag_id = b.id
+         ORDER BY bse.created_at DESC
+         LIMIT 1`,
+        [bagId]
+    );
+    return rows[0] || null;
+}
