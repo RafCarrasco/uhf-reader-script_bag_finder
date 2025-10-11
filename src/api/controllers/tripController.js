@@ -1,5 +1,6 @@
 import { pool } from "../../db/db.js";
 import { initTrip } from '../../db/tripDAO.js';
+import { listTravelerTripHistory } from '../../db/tripDAO.js';
 
 export async function getTripsByStatus(req, res) {
   const { isDone, travelerId } = req.params;
@@ -64,4 +65,14 @@ export async function createInitialTrip(req, res) {
         console.error("[Trips:createInitialTrip] Erro Transacional:", err);
         res.status(500).json({ error: "Falha ao iniciar viagem.", details: err.message });
     }
+}
+export async function historyByTraveler(req, res) {
+  try {
+    const { travelerId } = req.params;
+    const rows = await listTravelerTripHistory(travelerId);
+    res.json(rows);
+  } catch (e) {
+    console.error('[bags:historyByTraveler] error', e);
+    res.status(500).json({ error: 'internal_error' });
+  }
 }

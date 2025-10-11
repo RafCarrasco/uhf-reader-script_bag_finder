@@ -59,3 +59,4 @@ export async function markBagCollected(bagId, travelerId) {
         conn.release();
     }
 }
+

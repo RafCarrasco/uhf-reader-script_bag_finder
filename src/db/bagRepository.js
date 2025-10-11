@@ -102,3 +102,25 @@ export async function listStatusEventsByBag(bagId) {
     );
     return rows;
 }
+export async function getBagsByTripId(tripId) {
+  const [rows] = await pool.query(
+    `SELECT 
+        b.id,
+        b.trip_id,
+        b.status,
+        b.created_at,
+        b.updated_at,
+        b.printed_code,
+        b.epc,
+        t.origin,
+        t.destination,
+        u.full_name AS traveler_name
+     FROM bags b
+     JOIN trips t ON t.id = b.trip_id
+     JOIN users u ON u.id = t.user_id
+     WHERE b.trip_id = ?
+     ORDER BY b.created_at DESC`,
+    [tripId]
+  );
+  return rows;
+}

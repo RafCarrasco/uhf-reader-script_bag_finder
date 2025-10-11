@@ -109,3 +109,29 @@ export async function getBagItineraryAndLastEvent(bagId) {
     );
     return rows[0] || null;
 }
+
+export async function listTravelerTripHistory(travelerId) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+        t.id,
+        t.origin,
+        t.destination,
+        t.connection,
+        t.is_done,
+        t.created_at,
+        t.cpf,
+        t.user_id,
+        t.responsible_collaborator_id
+    FROM trips t
+    INNER JOIN users u
+        ON u.cpf = t.cpf
+    WHERE u.id = ?
+      AND u.role = 'TRAVELER'
+      AND t.is_done = 1
+    ORDER BY t.created_at DESC;
+    `,
+    [travelerId]
+  );
+  return rows;
+}
