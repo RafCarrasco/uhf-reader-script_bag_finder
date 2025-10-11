@@ -9,5 +9,7 @@ router.get('/:id/readings', BagsController.readings);
 router.get("/:id/timeline", BagsController.timeline);
 router.post('/readings', BagsController.registerReading);
 router.get('/trips/:tripId', BagsController.getByTripId);
+router.get('/status/user/:userId', BagsController.getBagsStatusByUserId);
+router.get("/status/epc/:epc", BagsController.getBagStatusByEpc);
 
 export default router;

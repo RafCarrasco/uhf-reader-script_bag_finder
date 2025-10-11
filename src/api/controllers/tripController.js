@@ -37,26 +37,21 @@ export async function getTripsByStatus(req, res) {
 export async function createInitialTrip(req, res) {
     const tripTransactionData = req.body; 
     
-    // 💡 CORREÇÃO 1: Desestruturar os campos obrigatórios (origin e destination)
-    // Usamos os nomes que o DAO espera (origin, destination).
     const { collaboratorId, cpf, origin, destination, bags } = tripTransactionData;
     
-    // 💡 CORREÇÃO 2: Tratar o erro de req.user.id (TypeError)
     if (!collaboratorId) {
         return res.status(400).json({ error: "ID do colaborador responsável é obrigatório." });
     }
     
-    // 💡 CORREÇÃO 3: Validação rigorosa (checar por vazio '')
     if (!cpf || cpf.length === 0 || 
-        !origin || origin.length === 0 ||  // Checa Origem
-        !destination || destination.length === 0 || // Checa Destino
+        !origin || origin.length === 0 ||
+        !destination || destination.length === 0 ||
         !bags || bags.length === 0) {
         
         return res.status(400).json({ error: "Dados obrigatórios (CPF, Origem, Destino, Malas) não fornecidos." });
     }
 
     try {
-        // Chama o DAO transacional.
         const result = await initTrip(tripTransactionData); 
         
         res.status(201).json(result); 
@@ -74,5 +69,29 @@ export async function historyByTraveler(req, res) {
   } catch (e) {
     console.error('[bags:historyByTraveler] error', e);
     res.status(500).json({ error: 'internal_error' });
+  }
+}
+
+
+export async function getAllTrips(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        t.id,
+        t.origin,
+        t.destination,
+        t.connection,
+        t.is_done AS isDone,
+        t.created_at,
+        t.user_id,
+        t.cpf
+      FROM trips t
+      ORDER BY t.created_at DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("[Trips:getAllTrips] Erro:", err);
+    res.status(500).json({ error: "Erro ao buscar todas as viagens." });
   }
 }

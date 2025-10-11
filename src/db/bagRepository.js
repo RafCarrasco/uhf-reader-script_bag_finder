@@ -47,6 +47,32 @@ export async function listReadingsByBag(bagId, limit = 100) {
   return rows;
 }
 
+export async function getBagsStatusByUserId(userId) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      bs.id,
+      bs.bag_id,
+      bs.status,
+      bs.created_at,
+      bs.destination,
+      bs.rfid_tag,
+      bs.printed_code,
+      bs.flight_connection,
+      bs.is_final_destination
+    FROM bag_status_events bs
+    INNER JOIN bags b ON b.id = bs.bag_id
+    INNER JOIN trips t ON t.id = b.trip_id
+    INNER JOIN users u ON u.id = t.user_id
+    WHERE u.id = ?
+    ORDER BY bs.created_at DESC;
+    `,
+    [userId]
+  );
+
+  return rows;
+}
+
 export async function listTravelerBagHistory(travelerId) {
   const [rows] = await pool.query(
     `SELECT 
@@ -123,4 +149,28 @@ export async function getBagsByTripId(tripId) {
     [tripId]
   );
   return rows;
+}
+
+export async function findByEpc(epc) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      b.id,
+      b.description,
+      b.rfid_tag AS epc,
+      b.status,
+      b.created_at,
+      t.id AS trip_id,
+      u.full_name AS traveler_name
+    FROM bags b
+    LEFT JOIN trips t ON t.id = b.trip_id
+    LEFT JOIN users u ON u.id = t.traveler_id
+    WHERE b.rfid_tag = ?
+    LIMIT 1
+    `,
+   [epc]
+  );
+
+  if (rows.length === 0) return null;
+  return rows[0];
 }
