@@ -5,6 +5,27 @@ import { pool } from "./db.js";
  * @param {string} bagId - ID da mala.
  * @returns {object} O último evento, ou null.
  */
+export async function getBagByEPC(epc) {
+  const [rows] = await pool.query(
+    `SELECT 
+      b.id,
+      b.user_id,
+      b.trip_id,
+      b.epc,
+      b.printed_code,
+      b.brand,
+      b.color,
+      b.weight,
+      b.status,
+      b.created_at,
+      b.updated_at
+     FROM bags b
+     WHERE b.epc = ?`,
+    [epc]
+  );
+  return rows;
+}
+
 export async function getLastBagStatusEvent(bagId) {
     const [rows] = await pool.query(
         `SELECT status, destination, created_at 
