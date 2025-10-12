@@ -1,4 +1,3 @@
-// src/db/userDAO.js  (ESM, exports nomeados)
 import { pool } from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,6 +19,27 @@ export async function getUserByCpf(cpf, cx = pool) {
   return rows[0] ?? null;
 }
 
+export async function getUserByCpfAndEmail(cpf, email, cx = pool) {
+  const [rows] = await cx.execute(
+    `SELECT id, company_id, full_name, cpf, email, role, is_active
+      FROM users
+     WHERE cpf = ? AND email = ?
+     LIMIT 1`,
+    [cpf, email]
+  );
+  return rows[0] ?? null;
+}
+
+export async function updatePassword(userId, hashedPassword, cx = pool) {
+  const [result] = await cx.execute(
+    `UPDATE users
+        SET password = ?, updated_at = NOW()
+      WHERE id = ?`,
+    [hashedPassword, userId]
+  );
+  return result.affectedRows > 0;
+}
+
 export async function upsertUser(userData) {
   const {
     fullName, email, password, role, cpf,
@@ -36,7 +56,6 @@ export async function upsertUser(userData) {
     const existing = await getUserByCpf(cpf, conn);
 
     if (existing) {
-      // Evita e-mail já usado por OUTRO usuário
       const [clash] = await conn.execute(
         `SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1`,
         [email, existing.id]
@@ -54,7 +73,6 @@ export async function upsertUser(userData) {
       return { created: false, user: { ...userData, id: existing.id } };
     }
 
-    // Novo usuário — checa duplicidade
     const [dups] = await conn.execute(
       `SELECT id FROM users WHERE email = ? OR cpf = ? LIMIT 1`,
       [email, cpf]
