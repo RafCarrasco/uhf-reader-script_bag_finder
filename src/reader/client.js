@@ -6,7 +6,7 @@ const PORT = 5000;
 const API_URL = "http://localhost:3000/bags/readings";
 
 let ultimaLeitura = "";
-const TEMPO_RESET = 1000; // 1 segundo
+const TEMPO_RESET = 1000;
 
 const client = new net.Socket();
 client.connect(PORT, HOST, () => {
@@ -16,20 +16,16 @@ client.connect(PORT, HOST, () => {
 client.on("data", async (data) => {
   const hex = data.toString("hex").toUpperCase();
 
-  // Ignora pacotes sem EPC
   if (!hex.includes("E280")) return;
 
-  // Pega só o EPC (remove cabeçalho do leitor)
   const index = hex.indexOf("E280");
-  const epcRaw = hex.substring(index, index + 28); // 28 chars = 14 bytes EPC
+  const epcRaw = hex.substring(index, index + 28);
   const epc = epcRaw.toUpperCase();
 
-  // Ignora EPC inválido ou incompleto
   if (epc.length < 28) return;
 
   const timestamp = new Date().toISOString();
 
-  // Evita repetir a mesma leitura em pouco tempo
   if (epc === ultimaLeitura) return;
   ultimaLeitura = epc;
   setTimeout(() => (ultimaLeitura = ""), TEMPO_RESET);

@@ -6,10 +6,12 @@ import {
     listReadingsByBag,
     listTravelerBagHistory,
     listStatusEventsByBag,
-    getBagsByTripId
+    getBagsByTripId,
+    getBagsStatusByUserId,
+    findByEpc,
 } from '../../db/bagRepository.js';
 
-import { saveBagReading, listReadingsByBagId } from '../../db/readingRepository.js';
+import { saveBagReading} from '../../db/readingRepository.js';
 import { pool } from "../../db/db.js";
 import { v4 as uuidv4 } from "uuid";
 import { broadcast } from '../../services/websocketService.js';
@@ -147,5 +149,44 @@ export const BagsController = {
             console.error('[bags:getByTripId] error', e);
             res.status(500).json({ error: 'internal_error' });
         }
-    }
+    },
+    async getBagsStatusByUserId(req, res) {
+        const { userId } = req.params;
+
+        try {
+            const bagsStatus = await getBagsStatusByUserId(userId);
+            if (!bagsStatus.length) {
+            return res.status(404).json({ message: 'Nenhum status encontrado para este usuário.' });
+            }
+            console.log('[BagController] Bags status fetched:', bagsStatus);
+            return res.status(200).json(bagsStatus);
+        } catch (error) {
+            console.error('[BagController] Erro ao buscar status das bags por userId:', error);
+            return res.status(500).json({ message: 'Erro interno ao buscar status das bags.' });
+        }
+    },
+    async getBagStatusByEpc(req, res) {
+        const { epc } = req.params;
+
+        try {
+        const bag = await findByEpc(epc);
+
+        if (!bag) {
+            return res.status(404).json({ message: "Bag não encontrada para o EPC informado." });
+        }
+
+        return res.status(200).json({
+            id: bag.id,
+            epc: bag.epc,
+            status: bag.status,
+            description: bag.description,
+            travelerName: bag.traveler_name,
+            tripId: bag.trip_id,
+            createdAt: bag.created_at,
+        });
+        } catch (error) {
+        console.error("[BagController] Erro ao buscar EPC:", error);
+        return res.status(500).json({ message: "Erro interno ao buscar a bagagem." });
+        }
+    },
 };
