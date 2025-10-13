@@ -144,28 +144,29 @@ export async function getBagsByTripId(tripId) {
      FROM bags b
      JOIN trips t ON t.id = b.trip_id
      JOIN users u ON u.id = t.user_id
-     WHERE b.trip_id = ?
+     WHERE b.status = 'COLLECTED' 
+       AND b.trip_id = ?
      ORDER BY b.created_at DESC`,
     [tripId]
   );
   return rows;
 }
 
+
 export async function findByEpc(epc) {
   const [rows] = await pool.query(
     `
     SELECT 
       b.id,
-      b.destination,
-      b.rfid_tag AS epc,
+      b.epc,
       b.status,
       b.created_at,
       t.id AS trip_id,
       u.full_name AS traveler_name
     FROM bags b
     LEFT JOIN trips t ON t.id = b.trip_id
-    LEFT JOIN users u ON u.id = t.traveler_id
-    WHERE b.rfid_tag = ?
+    LEFT JOIN users u ON u.id = t.user_id
+    WHERE b.epc = ?
     LIMIT 1
     `,
    [epc]
@@ -174,3 +175,63 @@ export async function findByEpc(epc) {
   if (rows.length === 0) return null;
   return rows[0];
 }
+
+export async function updateBag(bagId) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // Atualiza bag
+    const [updateBagResult] = await connection.query(
+      `
+      UPDATE bags
+         SET epc = NULL,
+             status = 'COLLECTED'
+       WHERE id = ?
+      `,
+      [bagId.id]
+    );
+
+    if (updateBagResult.affectedRows === 0)
+      throw new Error('Bag não encontrada.');
+
+    // Busca o trip_id da bag
+    const [bagRows] = await connection.query(
+      'SELECT trip_id FROM bags WHERE id = ?',
+      [bagId.id]
+    );
+    if (!bagRows.length) throw new Error('Trip não encontrada.');
+
+    const tripId = bagRows[0].trip_id;
+    // Atualiza tripcon
+    await connection.query(
+      'UPDATE trips SET is_done = 1 WHERE id = ?',
+      [tripId]
+    );
+
+    await connection.commit();
+    return true;
+  } catch (error) {
+    await connection.rollback();
+    console.error('[updateBag] Erro ao atualizar bag/trip:', error);
+    return false;
+  } finally {
+    connection.release();
+  }
+}
+
+
+
+export async function deleteBagStatusByBagId(bagId) {
+  const [result] = await pool.query(
+    `
+    DELETE FROM bag_status_events
+     WHERE bag_id = ?
+    `,
+    [bagId]
+  );
+
+  return result.affectedRows > 0;
+}
+
