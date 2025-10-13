@@ -12,5 +12,6 @@ router.get('/trips/:tripId', BagsController.getByTripId);
 router.get("/epc/:epc", BagsController.getBagByEPCController);
 router.get('/status/user/:userId', BagsController.getBagsStatusByUserId);
 router.get("/status/epc/:epc", BagsController.getBagStatusByEpc);
+router.patch('/:id/finalize-collection', BagsController.markCollected);
 
 export default router;

@@ -11,6 +11,11 @@ import {
     findByEpc,
 } from '../../db/bagRepository.js';
 
+import { 
+    getBagByEPC, 
+    markBagCollected // 💡 Novo DAO importado
+} from '../../db/bagDAO.js'; 
+
 import { saveBagReading} from '../../db/readingRepository.js';
 import { pool } from "../../db/db.js";
 import { v4 as uuidv4 } from "uuid";
@@ -187,6 +192,20 @@ export const BagsController = {
         } catch (error) {
         console.error("[BagController] Erro ao buscar EPC:", error);
         return res.status(500).json({ message: "Erro interno ao buscar a bagagem." });
+        }
+    },
+    
+    async markCollected(req, res) {
+        const { id: bagId } = req.params;
+
+        try {
+            const result = await markBagCollected(bagId);
+            
+            console.log(`[bags:markCollected] Coleta da bag ${bagId} confirmada. EPC liberado.`);
+            return res.status(200).json({ success: true, message: result.message });
+        } catch (error) {
+            console.error(`[bags:markCollected] Erro ao finalizar coleta da bag ${bagId}:`, error);
+            return res.status(500).json({ message: "Erro interno ao finalizar coleta da bagagem." });
         }
     },
 };
