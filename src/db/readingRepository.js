@@ -37,7 +37,7 @@ export async function saveBagReading(epc, timestamp, location) {
       "IN_TRANSIT_CONNECTION",
       "ARRIVED",
       "READY_FOR_PICKUP",
-      "COLLECTED",
+      // "COLLECTED",
     ];
 
     const currentIndex = statusFlow.indexOf(lastStatus);

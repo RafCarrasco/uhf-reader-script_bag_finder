@@ -9,6 +9,8 @@ import {
     getBagsByTripId,
     getBagsStatusByUserId,
     findByEpc,
+    updateBag,
+    deleteBagStatusByBagId
 } from '../../db/bagRepository.js';
 
 import { saveBagReading} from '../../db/readingRepository.js';
@@ -142,7 +144,6 @@ export const BagsController = {
             if (!bagsStatus.length) {
             return res.status(404).json({ message: 'Nenhum status encontrado para este usuário.' });
             }
-            console.log('[BagController] Bags status fetched:', bagsStatus);
             return res.status(200).json(bagsStatus);
         } catch (error) {
             console.error('[BagController] Erro ao buscar status das bags por userId:', error);
@@ -171,6 +172,40 @@ export const BagsController = {
         } catch (error) {
         console.error("[BagController] Erro ao buscar EPC:", error);
         return res.status(500).json({ message: "Erro interno ao buscar a bagagem." });
+        }
+    },
+        async updateBag(req, res) {
+        try {
+            const { id } = req.params;
+            const bagData = req.body;
+            bagData.id = id;
+
+            const success = await updateBag(bagData);
+
+            if (!success) {
+                return res.status(404).json({ message: 'Bag não encontrada.' });
+            }
+
+            return res.status(200).json({ message: 'Bag atualizada com sucesso.' });
+        } catch (error) {
+            console.error('[bags:updateBag] error', error);
+            return res.status(500).json({ message: 'Erro ao atualizar a bag.' });
+        }
+    },
+    async deleteBagStatusByBagId(req, res) {
+        try {
+            const { bagId } = req.params;
+
+            const success = await deleteBagStatusByBagId(bagId);
+
+            if (!success) {
+                return res.status(404).json({ message: 'Bag não encontrada.' });
+            }
+
+            return res.status(200).json({ message: `Status da bag ${bagId} deletado com sucesso.` });
+        } catch (error) {
+            console.error('[bags:deleteBagStatusByBagId] error', error);
+            return res.status(500).json({ message: 'Erro ao deletar status da bag.' });
         }
     },
 };
