@@ -43,6 +43,22 @@ export const BagsController = {
         }
     },
 
+    async getBagByEPCController(req, res) {
+        try {
+            const { epc } = req.params;
+            const result = await getBagByEPC(epc);
+
+            if (!result || result.length === 0) {
+            return res.status(404).json({ message: "Nenhuma bag encontrada com este EPC." });
+            }
+
+            res.status(200).json(result);
+        } catch (error) {
+            console.error("Erro ao buscar bag por EPC:", error);
+            res.status(500).json({ message: "Erro interno no servidor.", error: error.message });
+        }
+    },
+
     async readings(req, res) {
         try {
             const rows = await listReadingsByBag(req.params.id);

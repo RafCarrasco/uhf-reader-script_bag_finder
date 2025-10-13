@@ -3,7 +3,7 @@ import { pool } from './db.js';
 export async function listBags(limit = 100) {
   const [rows] = await pool.query(
     `SELECT b.id,
-            b.description,
+            b.destination,
             b.created_at,
             t.id         AS trip_id,
             u.full_name  AS traveler_name

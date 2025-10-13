@@ -7,7 +7,6 @@ export async function saveBagReading(epc, timestamp, location) {
   try {
     await conn.beginTransaction();
 
-    // 1️⃣ Buscar a bag pelo EPC
     const [bags] = await conn.query(
       "SELECT id, printed_code, status, trip_id FROM bags WHERE epc = ? LIMIT 1",
       [epc]
@@ -21,7 +20,6 @@ export async function saveBagReading(epc, timestamp, location) {
 
     const { id: bagId, printed_code, status: currentStatus, trip_id } = bags[0];
 
-    // 2️⃣ Buscar último evento (caso exista)
     const [lastEvents] = await conn.query(
       "SELECT status FROM bag_status_events WHERE bag_id = ? ORDER BY created_at DESC LIMIT 1",
       [bagId]
@@ -29,7 +27,6 @@ export async function saveBagReading(epc, timestamp, location) {
 
     const lastStatus = lastEvents.length ? lastEvents[0].status : currentStatus;
 
-    // 3️⃣ Determinar o próximo status
     const statusFlow = [
       "CHECKED_IN",
       "IN_TRANSIT",
@@ -44,7 +41,6 @@ export async function saveBagReading(epc, timestamp, location) {
     if (currentIndex === -1 || currentIndex === statusFlow.length - 1) {
       console.log(`✅ Ciclo finalizado para bag ${bagId} (${lastStatus})`);
       if (lastStatus === "COLLECTED") {
-        // 🔹 Marcar a viagem como concluída
         await conn.query("UPDATE trips SET is_done = 1 WHERE id = ?", [trip_id]);
       }
       await conn.commit();
@@ -54,7 +50,6 @@ export async function saveBagReading(epc, timestamp, location) {
     const newStatus = statusFlow[currentIndex + 1];
     console.log(`🔄 Bag ${bagId}: ${lastStatus} → ${newStatus}`);
 
-    // 4️⃣ Criar novo evento
     const eventId = uuidv4();
     await conn.query(
       `INSERT INTO bag_status_events
@@ -71,13 +66,11 @@ export async function saveBagReading(epc, timestamp, location) {
       ]
     );
 
-    // 5️⃣ Atualizar status da bag
     await conn.query(
       "UPDATE bags SET status = ?, updated_at = NOW() WHERE id = ?",
       [newStatus, bagId]
     );
 
-    // 6️⃣ Caso final — encerrar viagem
     if (newStatus === "COLLECTED") {
       await conn.query("UPDATE trips SET is_done = 1 WHERE id = ?", [trip_id]);
     }
