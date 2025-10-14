@@ -1,9 +1,7 @@
-// src/services/websocketService.js
 import { WebSocketServer, WebSocket } from 'ws';
 
 let wss = null;
 
-// 1. Inicializa o servidor WebSocket (usa o mesmo servidor HTTP)
 export const initWebSocket = (server) => {
     wss = new WebSocketServer({ server });
     console.log('🌐 WebSocket Server inicializado.');
@@ -13,7 +11,6 @@ export const initWebSocket = (server) => {
     });
 };
 
-// 2. Função para enviar dados para todos os clientes conectados (Flutter)
 export const broadcast = (data) => {
     if (!wss) {
         console.error('WebSocket Server não está inicializado.');

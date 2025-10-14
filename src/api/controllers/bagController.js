@@ -1,4 +1,3 @@
-// src/api/controllers/bagController.js
 
 import {
     listBags,
@@ -15,7 +14,7 @@ import {
 
 import { 
     getBagByEPC, 
-    markBagCollected // 💡 Novo DAO importado
+    markBagCollected
 } from '../../db/bagDAO.js'; 
 
 import { saveBagReading} from '../../db/readingRepository.js';
@@ -125,20 +124,18 @@ export const BagsController = {
     async timeline(req, res) {
         try {
             const { id } = req.params;
-            // Usa o novo DAO que busca os eventos de status reais
             const events = await listStatusEventsByBag(id);
 
             if (!events || events.length === 0) {
                 return res.status(404).json({ error: "Nenhum evento de status encontrado para esta mala" });
             }
 
-            // Mapeia os eventos para o formato de timeline
             const timeline = events.map(e => ({
                 time: e.event_time,
                 status: e.status,
                 destination: e.destination,
                 message: `Mala **${e.status.toUpperCase()}** com destino a ${e.destination}` + (e.is_final_destination ? ' (Destino Final)' : ''),
-                epc: e.epc_code // Opcional, mas útil para debug
+                epc: e.epc_code 
             }));
 
             res.json(timeline);

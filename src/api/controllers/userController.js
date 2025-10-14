@@ -1,6 +1,5 @@
-// src/api/controllers/userController.js
 import { pool } from '../../db/db.js';
-import { getUserByCpf, upsertUser } from '../../db/userDAO.js'; // ⬅️ IMPORTA os dois
+import { getUserByCpf, upsertUser } from '../../db/userDAO.js'; 
 
 export async function getUserById(req, res) {
   try {
@@ -38,7 +37,7 @@ export async function getUserByCpfController(req, res) {
   if (!cpf || cpf.length < 11) return res.status(400).json({ error: 'CPF inválido ou ausente.' });
 
   try {
-    const user = await getUserByCpf(cpf); // já não traz password
+    const user = await getUserByCpf(cpf); 
     if (!user) return res.status(404).json({ error: 'CPF não cadastrado.' });
     return res.json(user);
   } catch (err) {
@@ -52,11 +51,11 @@ export async function addUserController(req, res) {
     const b = req.body ?? {};
 
     const data = {
-      cpf: String(b.cpf || '').replace(/\D/g, ''),           // remove . e -
+      cpf: String(b.cpf || '').replace(/\D/g, ''),         
       fullName: String(b.fullName || '').trim(),
       email: String(b.email || '').trim().toLowerCase(),
       password: String(b.password || ''),
-      role: b.role || 'TRAVELER',                            // <- default
+      role: b.role || 'TRAVELER',                          
       phone: b.phone ? String(b.phone).trim() : null,
       isActive: b.isActive ?? true,
       company_id: b.company_id ?? null,
@@ -88,3 +87,42 @@ export async function addUserController(req, res) {
   }
 }
 
+export async function updateUserController(req, res) {
+  try {
+    const { id } = req.params;
+    const b = req.body ?? {};
+    
+    if (!id) return res.status(400).json({ error: 'ID do usuário ausente na requisição.' });
+    if (!b.cpf) return res.status(400).json({ error: 'CPF é obrigatório para atualização.' });
+
+    const data = {
+      id: id,
+      cpf: String(b.cpf).replace(/\D/g, ''),
+      fullName: String(b.fullName || '').trim(),
+      email: String(b.email || '').trim().toLowerCase(),
+      role: 'TRAVELER', 
+      phone: b.phone ? String(b.phone).trim() : null,
+      isActive: b.isActive ?? true,
+      company_id: b.company_id ?? null,
+    };
+    
+    if (b.password && b.password.length > 0) {
+        data.password = String(b.password);
+    }
+    
+
+    const result = await upsertUser(data);
+
+    if (result.created) {
+      return res.status(201).json(result.user); 
+    }
+    
+    return res.status(200).json(result.user);
+
+  } catch (err) {
+    const status = err.statusCode ?? 500;
+    const message = err.message ?? 'Erro interno no servidor.';
+    console.error('[updateUserController]', { status, ...err });
+    return res.status(status).json({ error: message });
+  }
+}

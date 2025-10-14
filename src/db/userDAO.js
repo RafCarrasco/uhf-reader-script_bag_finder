@@ -22,9 +22,9 @@ export async function getUserByCpf(cpf, cx = pool) {
 export async function getUserByCpfAndEmail(cpf, email, cx = pool) {
   const [rows] = await cx.execute(
     `SELECT id, company_id, full_name, cpf, email, role, is_active
-      FROM users
-     WHERE cpf = ? AND email = ?
-     LIMIT 1`,
+       FROM users
+      WHERE cpf = ? AND email = ?
+      LIMIT 1`,
     [cpf, email]
   );
   return rows[0] ?? null;
@@ -42,8 +42,16 @@ export async function updatePassword(userId, hashedPassword, cx = pool) {
 
 export async function upsertUser(userData) {
   const {
-    fullName, email, password, role, cpf,
-    phone, isActive, company_id, companyId, id: maybeId,
+    fullName,
+    email,
+    password,
+    role,
+    cpf,
+    phone,
+    isActive,
+    company_id,
+    companyId,
+    id: maybeId,
   } = userData;
 
   const userPhone = phone ?? null;
@@ -60,14 +68,39 @@ export async function upsertUser(userData) {
         `SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1`,
         [email, existing.id]
       );
-      if (clash.length) throw new HttpError(409, 'E-mail já cadastrado em outra conta');
+      if (clash.length)
+        throw new HttpError(409, 'E-mail já cadastrado em outra conta');
 
-      await conn.execute(
-        `UPDATE users
-            SET full_name = ?, email = ?, password = ?, role = ?, phone = ?, is_active = ?, company_id = ?
-          WHERE id = ?`,
-        [fullName, email, password, role, userPhone, isActive ? 1 : 0, userCompanyId, existing.id]
-      );
+      const updateFields = [
+        'full_name = ?',
+        'email = ?',
+        'role = ?',
+        'phone = ?',
+        'is_active = ?',
+        'company_id = ?',
+      ];
+      const params = [
+        fullName,
+        email,
+        role,
+        userPhone,
+        isActive ? 1 : 0,
+        userCompanyId,
+      ];
+
+      if (password && password.trim() !== '') {
+        updateFields.splice(2, 0, 'password = ?');
+        params.splice(2, 0, password);
+      }
+
+      const sql = `
+        UPDATE users
+           SET ${updateFields.join(', ')}
+         WHERE id = ?
+      `;
+
+      params.push(existing.id);
+      await conn.execute(sql, params);
 
       await conn.commit();
       return { created: false, user: { ...userData, id: existing.id } };
@@ -83,9 +116,18 @@ export async function upsertUser(userData) {
     await conn.execute(
       `INSERT INTO users
          (id, full_name, email, password, role, is_active, created_at, cpf, phone, company_id)
-       VALUES
-         (?,  ?,         ?,     ?,        ?,    ?,         NOW(),     ?,   ?,     ?)`,
-      [newId, fullName, email, password, role, isActive ? 1 : 0, cpf, userPhone, userCompanyId]
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
+      [
+        newId,
+        fullName,
+        email,
+        password || '',
+        role,
+        isActive ? 1 : 0,
+        cpf,
+        userPhone,
+        userCompanyId,
+      ]
     );
 
     await conn.commit();

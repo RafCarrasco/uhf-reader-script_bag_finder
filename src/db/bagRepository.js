@@ -182,7 +182,7 @@ export async function updateBag(bagId) {
   try {
     await connection.beginTransaction();
 
-    // Atualiza bag
+
     const [updateBagResult] = await connection.query(
       `
       UPDATE bags
@@ -196,7 +196,7 @@ export async function updateBag(bagId) {
     if (updateBagResult.affectedRows === 0)
       throw new Error('Bag não encontrada.');
 
-    // Busca o trip_id da bag
+
     const [bagRows] = await connection.query(
       'SELECT trip_id FROM bags WHERE id = ?',
       [bagId.id]
@@ -204,7 +204,7 @@ export async function updateBag(bagId) {
     if (!bagRows.length) throw new Error('Trip não encontrada.');
 
     const tripId = bagRows[0].trip_id;
-    // Atualiza tripcon
+
     await connection.query(
       'UPDATE trips SET is_done = 1 WHERE id = ?',
       [tripId]
