@@ -84,42 +84,47 @@ export const BagsController = {
         }
     },
 
-    async registerReading(req, res) {
-        const { epc, timestamp, location } = req.body;
+        async registerReading(req, res) {
+            let { epc, timestamp, location } = req.body;
 
-        const now = Date.now();
-        const lastTime = epcDebounceCache[epc] || 0;
-
-        if (now - lastTime < DEBOUNCE_MS) {
-            return res.json({ success: true, message: `EPC ${epc} ignorado (debounce ativo).` });
-        }
-
-
-        try {
-            const result = await saveBagReading(epc, timestamp, location);
-
-            epcDebounceCache[epc] = now;
-
-            broadcast({
-                type: 'TAG_READ',
-                epc: result.epc,
-                status: result.status,
-                destination: result.destination,
-                bag_id: result.bag_id
-            });
-
-            if (result.status === 'NAO_CADASTRADA') {
-                console.log(`[bags:registerReading] EPC ${epc} enviado para vínculo.`);
-                return res.json({ success: true, message: "EPC lido e enviado ao Front para vínculo.", epc: epc });
+            // 🔹 Remove os últimos 4 caracteres do EPC, se possível
+            if (epc && epc.length > 4) {
+                epc = epc.substring(0, epc.length - 4);
             }
 
-            console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso. Novo Status: ${result.status}`);
-            return res.json({ success: true, result });
+            const now = Date.now();
+            const lastTime = epcDebounceCache[epc] || 0;
 
-        } catch (e) {
-            console.error("[bags:registerReading] error", e);
-        }
-    },
+            if (now - lastTime < DEBOUNCE_MS) {
+                return res.json({ success: true, message: `EPC ${epc} ignorado (debounce ativo).` });
+            }
+
+            try {
+                const result = await saveBagReading(epc, timestamp, location);
+
+                epcDebounceCache[epc] = now;
+
+                broadcast({
+                    type: 'TAG_READ',
+                    epc: result.epc,
+                    status: result.status,
+                    destination: result.destination,
+                    bag_id: result.bag_id
+                });
+
+                if (result.status === 'NAO_CADASTRADA') {
+                    console.log(`[bags:registerReading] EPC ${epc} enviado para vínculo.`);
+                    return res.json({ success: true, message: "EPC lido e enviado ao Front para vínculo.", epc });
+                }
+
+                console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso. Novo Status: ${result.status}`);
+                return res.json({ success: true, result });
+
+            } catch (e) {
+                console.error("[bags:registerReading] error", e);
+            }
+        },
+
 
     async timeline(req, res) {
         try {
