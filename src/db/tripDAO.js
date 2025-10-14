@@ -45,9 +45,9 @@ for (const bag of bags) {
     );
 
     await conn.query(
-        `INSERT INTO bag_status_events (id, bag_id, status, destination, rfid_tag, printed_code, created_at, is_final_destination)
-         VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)`,
-        [uuidv4(), bag.id, 'CHECKED_IN', origin, bag.epc, bag.printedCode] 
+        `INSERT INTO bag_status_events (id, bag_id, status, destination, rfid_tag, printed_code, created_at, is_final_destination,flight_connection)
+         VALUES (?, ?, ?, ?, ?, ?, NOW(), 0,?)`,
+        [uuidv4(), bag.id, 'CHECKED_IN', origin, bag.epc, bag.printedCode, tripConnection] 
     );
 }
 

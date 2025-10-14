@@ -5,6 +5,7 @@ import bagRoutes from './routes/bagRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import tripRoutes from "./routes/tripRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import rfidTagRoutes from "./routes/rfidTagRoutes.js";
 import readingRoutes from "./routes/readingRoutes.js";
 
@@ -28,6 +29,7 @@ app.use('/users', userRoutes);
 app.use("/rfid_tags", rfidTagRoutes);
 app.use("/bags/readings", readingRoutes);
 app.use("/trips", tripRoutes);
+app.use("/admins", adminRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 

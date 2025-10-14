@@ -20,22 +20,42 @@ export async function saveBagReading(epc, timestamp, location) {
 
     const { id: bagId, printed_code, status: currentStatus, trip_id } = bags[0];
 
-    const [lastEvents] = await conn.query(
-      "SELECT status FROM bag_status_events WHERE bag_id = ? ORDER BY created_at DESC LIMIT 1",
-      [bagId]
-    );
+  const [lastEvents] = await conn.query(
+    "SELECT status FROM bag_status_events WHERE bag_id = ? ORDER BY created_at DESC LIMIT 1",
+    [bagId]
+  );
 
     const lastStatus = lastEvents.length ? lastEvents[0].status : currentStatus;
 
-    const statusFlow = [
-      "CHECKED_IN",
-      "IN_TRANSIT",
-      "ARRIVED_AT_CONNECTION",
-      "IN_TRANSIT_CONNECTION",
-      "ARRIVED",
-      "READY_FOR_PICKUP",
-      // "COLLECTED",
-    ];
+    const [hasConnectionRows] = await conn.query(
+      "SELECT 1 FROM bag_status_events WHERE bag_id = ? AND flight_connection IS NOT NULL LIMIT 1",
+      [bagId]
+    );
+
+    let statusFlow = [];
+
+    if (hasConnectionRows.length > 0) {
+      statusFlow = [
+        "CHECKED_IN",
+        "IN_TRANSIT",
+        "ARRIVED_AT_CONNECTION",
+        "IN_TRANSIT_CONNECTION",
+        "ARRIVED",
+        "READY_FOR_PICKUP",
+        // "COLLECTED",
+      ];
+    } else {
+      statusFlow = [
+        "CHECKED_IN",
+        "IN_TRANSIT",
+        "ARRIVED",
+        "READY_FOR_PICKUP",
+        // "COLLECTED",
+      ];
+    }
+
+    console.log("Status flow:", statusFlow);
+
 
     const currentIndex = statusFlow.indexOf(lastStatus);
     if (currentIndex === -1 || currentIndex === statusFlow.length - 1) {
