@@ -19,15 +19,20 @@ client.on("data", async (data) => {
   if (!hex.includes("E280")) return;
 
   const index = hex.indexOf("E280");
-  const epcRaw = hex.substring(index, index + 28);
-  const epc = epcRaw.toUpperCase();
+  const epcRaw = hex.substring(index, index + 28).toUpperCase(); // <-- Alterada para já incluir .toUpperCase()
 
-  if (epc.length < 28) return;
+  // 1. NOVO CÓDIGO: Realiza o corte para obter a EPC reduzida
+  const epcCompleta = epcRaw;
+  const epc = epcCompleta.slice(0, -4); // A variável 'epc' agora tem 24 caracteres!
+
+  if (epc.length < 24) return; // 2. ALTERADA: A validação agora é para 24 (28 - 4)
 
   const timestamp = new Date().toISOString();
 
+  // 3. ALTERADA: O bloqueio é feito usando a 'epc' reduzida (24 caracteres)
   if (epc === ultimaLeitura) return;
   ultimaLeitura = epc;
+
   setTimeout(() => (ultimaLeitura = ""), TEMPO_RESET);
 
   console.log(`[${timestamp}] EPC detectado: ${epc}`);
