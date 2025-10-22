@@ -112,3 +112,59 @@ export async function listTravelerTripHistory(travelerId) {
   );
   return rows;
 }
+
+export async function getTripsByFullName(fullName) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      t.id,
+      t.origin,
+      t.destination,
+      t.connection,
+      t.is_done,
+      t.created_at,
+      t.cpf,
+      t.user_id,
+      u.full_name
+    FROM trips t
+    INNER JOIN users u
+      ON u.cpf = t.cpf
+    WHERE u.full_name LIKE ?
+    ORDER BY t.created_at DESC
+    `,
+    [`%${fullName}%`]
+  );
+
+  return rows;
+}
+
+export async function listTravelerTripHistoryByLocation(userId, searchTerm) {
+  const likeTerm = `%${searchTerm}%`;
+
+  const [rows] = await pool.query(
+    `
+    SELECT 
+        t.id,
+        t.origin,
+        t.destination,
+        t.connection,
+        t.is_done,
+        t.created_at,
+        t.cpf,
+        t.user_id,
+        t.responsible_collaborator_id,
+        u.full_name
+    FROM trips t
+    INNER JOIN users u
+        ON u.cpf = t.cpf
+    WHERE u.id = ?
+      AND u.role = 'TRAVELER'
+      AND t.is_done = 1
+      AND (t.origin LIKE ? OR t.destination LIKE ?)
+    ORDER BY t.created_at DESC;
+    `,
+    [userId, likeTerm, likeTerm]
+  );
+
+  return rows;
+}

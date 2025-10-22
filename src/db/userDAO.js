@@ -139,3 +139,43 @@ export async function upsertUser(userData) {
     conn.release();
   }
 }
+export async function createUserCollaborator(userData) {
+  const {
+    fullName, email, password, role,
+    cpf, phone, isActive, company_id, companyId,
+  } = userData;
+
+  const userPhone = phone ?? null;
+  const userCompanyId = company_id ?? companyId ?? null;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 🔍 Verifica se e-mail já está em uso
+    const [dups] = await conn.execute(
+      `SELECT id FROM users WHERE email = ? LIMIT 1`,
+      [email]
+    );
+    if (dups.length) throw new HttpError(409, 'E-mail já cadastrado');
+
+    // 🆕 Sempre cria novo usuário
+    const newId = uuidv4();
+    await conn.execute(
+      `INSERT INTO users
+         (id, full_name, email, password, role, is_active, created_at, cpf, phone, company_id)
+       VALUES
+         (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
+      [newId, fullName, email, password, role, isActive ? 1 : 0, cpf ?? '00000000000', userPhone, userCompanyId]
+    );
+
+    await conn.commit();
+    return { created: true, user: { ...userData, id: newId } };
+
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}

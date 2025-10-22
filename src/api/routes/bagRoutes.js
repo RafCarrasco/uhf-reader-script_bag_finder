@@ -12,6 +12,7 @@ router.get('/trips/:tripId', BagsController.getByTripId);
 router.get("/epc/:epc", BagsController.getBagByEPCController);
 router.get('/status/user/:userId', BagsController.getBagsStatusByUserId);
 router.get("/status/epc/:epc", BagsController.getBagStatusByEpc);
+router.get('/status/printed/:printed/user/:userId', BagsController.getBagsStatusByPrintedCode);
 router.put('/:id', BagsController.updateBag);
 router.put('/status/delete/:bagId', BagsController.deleteBagStatusByBagId);
 

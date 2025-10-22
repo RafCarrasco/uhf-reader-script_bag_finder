@@ -7,17 +7,18 @@ import {
     listStatusEventsByBag,
     getBagsByTripId,
     getBagsStatusByUserId,
+    getBagsStatusByPrintedCode,
     findByEpc,
     updateBag,
     deleteBagStatusByBagId
 } from '../../db/bagRepository.js';
 
-import { 
-    getBagByEPC, 
+import {
+    getBagByEPC,
     markBagCollected
-} from '../../db/bagDAO.js'; 
+} from '../../db/bagDAO.js';
 
-import { saveBagReading} from '../../db/readingRepository.js';
+import { saveBagReading } from '../../db/readingRepository.js';
 import { pool } from "../../db/db.js";
 import { v4 as uuidv4 } from "uuid";
 import { broadcast } from '../../services/websocketService.js';
@@ -53,7 +54,7 @@ export const BagsController = {
             const result = await getBagByEPC(epc);
 
             if (!result || result.length === 0) {
-            return res.status(404).json({ message: "Nenhuma bag encontrada com este EPC." });
+                return res.status(404).json({ message: "Nenhuma bag encontrada com este EPC." });
             }
 
             res.status(200).json(result);
@@ -84,46 +85,46 @@ export const BagsController = {
         }
     },
 
-        async registerReading(req, res) {
-            let { epc, timestamp, location } = req.body;
+    async registerReading(req, res) {
+        let { epc, timestamp, location } = req.body;
 
-            // 🔹 Remove os últimos 4 caracteres do EPC, se possível
-            if (epc && epc.length > 4) {
-                epc = epc.substring(0, epc.length - 4);
+        if (epc && epc.length > 4) {
+            epc = epc.substring(0, epc.length - 4);
+        }
+        console.log(epc.length)
+
+        const now = Date.now();
+        const lastTime = epcDebounceCache[epc] || 0;
+
+        if (now - lastTime < DEBOUNCE_MS) {
+            return res.json({ success: true, message: `EPC ${epc} ignorado (debounce ativo).` });
+        }
+
+        try {
+            const result = await saveBagReading(epc, timestamp, location);
+
+            epcDebounceCache[epc] = now;
+
+            broadcast({
+                type: 'TAG_READ',
+                epc: result.epc,
+                status: result.status,
+                destination: result.destination,
+                bag_id: result.bag_id
+            });
+
+            if (result.status === 'NAO_CADASTRADA') {
+                console.log(`[bags:registerReading] EPC ${epc} enviado para vínculo.`);
+                return res.json({ success: true, message: "EPC lido e enviado ao Front para vínculo.", epc });
             }
 
-            const now = Date.now();
-            const lastTime = epcDebounceCache[epc] || 0;
+            console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso. Novo Status: ${result.status}`);
+            return res.json({ success: true, result });
 
-            if (now - lastTime < DEBOUNCE_MS) {
-                return res.json({ success: true, message: `EPC ${epc} ignorado (debounce ativo).` });
-            }
-
-            try {
-                const result = await saveBagReading(epc, timestamp, location);
-
-                epcDebounceCache[epc] = now;
-
-                broadcast({
-                    type: 'TAG_READ',
-                    epc: result.epc,
-                    status: result.status,
-                    destination: result.destination,
-                    bag_id: result.bag_id
-                });
-
-                if (result.status === 'NAO_CADASTRADA') {
-                    console.log(`[bags:registerReading] EPC ${epc} enviado para vínculo.`);
-                    return res.json({ success: true, message: "EPC lido e enviado ao Front para vínculo.", epc });
-                }
-
-                console.log(`[bags:registerReading] EPC ${epc} registrado com sucesso. Novo Status: ${result.status}`);
-                return res.json({ success: true, result });
-
-            } catch (e) {
-                console.error("[bags:registerReading] error", e);
-            }
-        },
+        } catch (e) {
+            console.error("[bags:registerReading] error", e);
+        }
+    },
 
 
     async timeline(req, res) {
@@ -140,7 +141,7 @@ export const BagsController = {
                 status: e.status,
                 destination: e.destination,
                 message: `Mala **${e.status.toUpperCase()}** com destino a ${e.destination}` + (e.is_final_destination ? ' (Destino Final)' : ''),
-                epc: e.epc_code 
+                epc: e.epc_code
             }));
 
             res.json(timeline);
@@ -165,7 +166,7 @@ export const BagsController = {
         try {
             const bagsStatus = await getBagsStatusByUserId(userId);
             if (!bagsStatus.length) {
-            return res.status(404).json({ message: 'Nenhum status encontrado para este usuário.' });
+                return res.status(404).json({ message: 'Nenhum status encontrado para este usuário.' });
             }
             return res.status(200).json(bagsStatus);
         } catch (error) {
@@ -177,27 +178,26 @@ export const BagsController = {
         const { epc } = req.params;
 
         try {
-        const bag = await findByEpc(epc);
+            const bag = await findByEpc(epc);
+            if (!bag) {
+                return res.status(404).json({ message: "Bag não encontrada para o EPC informado." });
+            }
 
-        if (!bag) {
-            return res.status(404).json({ message: "Bag não encontrada para o EPC informado." });
-        }
-
-        return res.status(200).json({
-            id: bag.id,
-            epc: bag.epc,
-            status: bag.status,
-            description: bag.description,
-            travelerName: bag.traveler_name,
-            tripId: bag.trip_id,
-            createdAt: bag.created_at,
-        });
+            return res.status(200).json({
+                id: bag.id,
+                epc: bag.epc,
+                status: bag.status,
+                description: bag.description,
+                travelerName: bag.traveler_name,
+                tripId: bag.trip_id,
+                createdAt: bag.created_at,
+            });
         } catch (error) {
-        console.error("[BagController] Erro ao buscar EPC:", error);
-        return res.status(500).json({ message: "Erro interno ao buscar a bagagem." });
+            console.error("[BagController] Erro ao buscar EPC:", error);
+            return res.status(500).json({ message: "Erro interno ao buscar a bagagem." });
         }
     },
-        async updateBag(req, res) {
+    async updateBag(req, res) {
         try {
             const { id } = req.params;
             const bagData = req.body;
@@ -231,4 +231,24 @@ export const BagsController = {
             return res.status(500).json({ message: 'Erro ao deletar status da bag.' });
         }
     },
+    async getBagsStatusByPrintedCode(req, res) {
+    try {
+        const { printed, userId } = req.params;
+
+        if (!printed || !userId) {
+        return res.status(400).json({ message: 'Parâmetros inválidos: printed e userId são obrigatórios.' });
+        }
+
+        const bags = await getBagsStatusByPrintedCode(printed, userId);
+
+        if (!bags || bags.length === 0) {
+        return res.status(404).json({ message: 'Nenhuma bag encontrada.' });
+        }
+
+        return res.status(200).json(bags);
+    } catch (error) {
+        console.error('[getBagsStatusByPrintedCode] Erro:', error);
+        return res.status(500).json({ message: 'Erro interno do servidor.' });
+    }
+    }
 };

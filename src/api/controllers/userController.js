@@ -1,5 +1,5 @@
 import { pool } from '../../db/db.js';
-import { getUserByCpf, upsertUser } from '../../db/userDAO.js'; 
+import { getUserByCpf, upsertUser, createUserCollaborator } from '../../db/userDAO.js'; 
 
 export async function getUserById(req, res) {
   try {
@@ -74,7 +74,7 @@ export async function addUserController(req, res) {
       return res.status(400).json({ error: 'CPF inválido. Envie 11 dígitos.' });
     }
 
-    const result = await upsertUser(data);
+    const result = await createUserCollaborator(data);
     return res.status(result.created ? 201 : 200).json(result.user);
 
   } catch (err) {

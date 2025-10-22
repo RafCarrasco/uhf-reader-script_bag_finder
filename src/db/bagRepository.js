@@ -157,24 +157,38 @@ export async function findByEpc(epc) {
   const [rows] = await pool.query(
     `
     SELECT 
-      b.id,
-      b.epc,
-      b.status,
-      b.created_at,
-      t.id AS trip_id,
-      u.full_name AS traveler_name
+      b.id AS id,
+      b.id AS bag_id,
+      b.status AS status,
+      b.created_at AS created_at,
+      b.epc AS rfid_tag,
+      b.printed_code AS printed_code,
+
+      -- destino da viagem (ou conexão)
+      COALESCE(t.destination, f.destination) AS destination,
+      f.flight_number AS flight_connection,
+
+      -- se for o destino final da viagem
+      CASE 
+        WHEN f.is_final_destination = 1 THEN 1
+        ELSE 0
+      END AS is_final_destination,
+
     FROM bags b
     LEFT JOIN trips t ON t.id = b.trip_id
+    LEFT JOIN flights f ON f.trip_id = t.id
     LEFT JOIN users u ON u.id = t.user_id
     WHERE b.epc = ?
+    ORDER BY f.created_at DESC
     LIMIT 1
     `,
-   [epc]
+    [epc]
   );
 
   if (rows.length === 0) return null;
   return rows[0];
 }
+
 
 export async function updateBag(bagId) {
   const connection = await pool.getConnection();
@@ -233,5 +247,32 @@ export async function deleteBagStatusByBagId(bagId) {
   );
 
   return result.affectedRows > 0;
+}
+
+export async function getBagsStatusByPrintedCode(printedCode,userId) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      bs.id,
+      bs.bag_id,
+      bs.status,
+      bs.created_at,
+      bs.destination,
+      bs.rfid_tag,
+      bs.printed_code,
+      bs.flight_connection,
+      bs.is_final_destination
+    FROM bag_status_events bs
+    INNER JOIN bags b ON b.id = bs.bag_id
+    INNER JOIN trips t ON t.id = b.trip_id
+    INNER JOIN users u ON u.id = t.user_id
+    WHERE u.id = ? 
+      AND bs.printed_code LIKE ?
+    ORDER BY bs.created_at DESC;
+    `,
+    [userId, `%${printedCode}%`]
+  );
+
+  return rows;
 }
 

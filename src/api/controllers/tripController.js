@@ -1,6 +1,9 @@
 import { pool } from "../../db/db.js";
 import { initTrip } from '../../db/tripDAO.js';
 import { listTravelerTripHistory } from '../../db/tripDAO.js';
+import { getTripsByFullName } from '../../db/tripDAO.js';
+import { listTravelerTripHistoryByLocation } from "../../db/tripDAO.js";
+
 
 export async function getTripsByStatus(req, res) {
     const { isDone, travelerId } = req.params;
@@ -97,3 +100,55 @@ export async function getAllTrips(req, res) {
         res.status(500).json({ error: "Erro ao buscar todas as viagens." });
     }
 }
+
+export async function getTripsByTravelerFullName(req, res) {
+  const { fullName } = req.params;
+
+  try {
+    const trips = await getTripsByFullName(fullName);
+    if (!trips || trips.length === 0) {
+      return res.status(404).json({
+        message: "Nenhuma viagem encontrada para este passageiro.",
+      });
+    }
+
+    return res.status(200).json(trips);
+  } catch (error) {
+    console.error("[tripController:getTripsByTravelerFullName]", error);
+    return res.status(500).json({
+      message: "Erro interno ao buscar viagens por nome do passageiro.",
+      error: error.message,
+    });
+  }
+}
+
+export async function searchTravelerTripsByLocation(req, res) {
+  try {
+    const { userId, term } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "O ID do usuário é obrigatório." });
+    }
+
+    if (!term || term.trim().length === 0) {
+      return res.status(400).json({ error: "O termo de busca é obrigatório." });
+    }
+
+    const trips = await listTravelerTripHistoryByLocation(userId, term);
+    console.log(trips)
+    if (!trips || trips.length === 0) {
+      return res.status(404).json({
+        message: "Nenhuma viagem encontrada para este usuário com o termo informado.",
+      });
+    }
+
+    return res.status(200).json(trips);
+  } catch (error) {
+    console.error("[tripController:searchTravelerTrips] Erro ao buscar viagens:", error);
+    return res.status(500).json({
+      message: "Erro interno ao buscar viagens por origem/destino e usuário.",
+      error: error.message,
+    });
+  }
+}
+
