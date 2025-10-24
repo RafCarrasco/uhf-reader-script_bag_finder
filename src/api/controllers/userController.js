@@ -1,5 +1,5 @@
 import { pool } from '../../db/db.js';
-import { getUserByCpf, upsertUser, createUserCollaborator } from '../../db/userDAO.js'; 
+import { getUserByCpf, upsertUser, createUserCollaborator,upsertUserCadastro } from '../../db/userDAO.js'; 
 
 export async function getUserById(req, res) {
   try {
@@ -123,6 +123,41 @@ export async function updateUserController(req, res) {
     const status = err.statusCode ?? 500;
     const message = err.message ?? 'Erro interno no servidor.';
     console.error('[updateUserController]', { status, ...err });
+    return res.status(status).json({ error: message });
+  }
+}
+
+export async function upsertUserCadastroController(req, res) {
+  try {
+    const b = req.body ?? {};
+
+    if (!b.cpf) {
+      return res.status(400).json({ error: 'CPF é obrigatório.' });
+    }
+
+    const data = {
+      cpf: String(b.cpf).replace(/\D/g, ''),
+      fullName: String(b.fullName || '').trim(),
+      email: String(b.email || '').trim().toLowerCase(),
+      password: b.password ?? '',
+      role: b.role || 'TRAVELER',
+      phone: b.phone ?? null,
+      isActive: b.isActive ?? true,
+      company_id: b.company_id ?? null,
+    };
+
+    const result = await upsertUserCadastro(data);
+
+    if (result.created) {
+      return res.status(201).json(result.user);
+    } else {
+      return res.status(200).json(result.user);
+    }
+
+  } catch (err) {
+    const status = err.statusCode ?? 500;
+    const message = err.message ?? 'Erro interno no servidor.';
+    console.error('[upsertUserController]', err);
     return res.status(status).json({ error: message });
   }
 }

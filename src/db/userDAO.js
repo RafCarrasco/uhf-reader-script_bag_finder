@@ -171,3 +171,52 @@ export async function createUserCollaborator(userData) {
     conn.release();
   }
 }
+
+export async function upsertUserCadastro(userData) {
+  const {
+    fullName,
+    email,
+    password,
+    role,
+    cpf,
+    phone,
+    isActive,
+    company_id,
+  } = userData;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const existing = await getUserByCpf(cpf, conn);
+
+    if (existing) {
+      await conn.execute(
+        `UPDATE users
+            SET full_name = ?, email = ?, password = ?, role = ?, phone = ?, 
+                is_active = ?, company_id = ?, updated_at = NOW()
+          WHERE cpf = ?`,
+        [fullName, email, password, role, phone, isActive ? 1 : 0, company_id, cpf]
+      );
+
+      await conn.commit();
+      return { created: false, user: { ...userData, id: existing.id } };
+    }
+
+    const newId = uuidv4();
+    await conn.execute(
+      `INSERT INTO users
+         (id, full_name, email, password, role, is_active, created_at, cpf, phone, company_id)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
+      [newId, fullName, email, password, role, isActive ? 1 : 0, cpf, phone, company_id]
+    );
+
+    await conn.commit();
+    return { created: true, user: { ...userData, id: newId } };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}

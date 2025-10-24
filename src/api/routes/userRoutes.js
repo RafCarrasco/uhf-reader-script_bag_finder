@@ -1,6 +1,6 @@
 import express from 'express';
 import { pool } from '../../db/db.js'; 
-import { getUserByCpfController, addUserController, getUserById, updateUserController } from '../controllers/userController.js';
+import { getUserByCpfController, addUserController, getUserById, updateUserController, upsertUserCadastroController } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -29,6 +29,9 @@ router.put('/:id', updateUserController);
 
 router.get('/cpf/:cpf', getUserByCpfController); 
 
-// router.post('/', addUserController);
+router.post('/', addUserController);
+
+router.put('/upsert', upsertUserCadastroController);
+
 
 export default router;
