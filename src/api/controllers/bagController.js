@@ -88,9 +88,6 @@ export const BagsController = {
     async registerReading(req, res) {
         let { epc, timestamp, location } = req.body;
 
-        if (epc && epc.length > 4) {
-            epc = epc.substring(0, epc.length - 4);
-        }
         console.log(epc.length)
 
         const now = Date.now();

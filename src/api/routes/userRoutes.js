@@ -29,6 +29,6 @@ router.put('/:id', updateUserController);
 
 router.get('/cpf/:cpf', getUserByCpfController); 
 
-router.post('/', addUserController);
+// router.post('/', addUserController);
 
 export default router;

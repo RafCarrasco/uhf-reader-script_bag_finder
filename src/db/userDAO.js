@@ -71,36 +71,28 @@ export async function upsertUser(userData) {
       if (clash.length)
         throw new HttpError(409, 'E-mail já cadastrado em outra conta');
 
-      const updateFields = [
-        'full_name = ?',
-        'email = ?',
-        'role = ?',
-        'phone = ?',
-        'is_active = ?',
-        'company_id = ?',
-      ];
-      const params = [
-        fullName,
-        email,
-        role,
-        userPhone,
-        isActive ? 1 : 0,
-        userCompanyId,
-      ];
-
-      if (password && password.trim() !== '') {
-        updateFields.splice(2, 0, 'password = ?');
-        params.splice(2, 0, password);
-      }
-
-      const sql = `
-        UPDATE users
-           SET ${updateFields.join(', ')}
-         WHERE id = ?
-      `;
-
-      params.push(existing.id);
-      await conn.execute(sql, params);
+      // const updateFields = [
+      //   'full_name = ?',
+      //   'email = ?',
+      //   'role = ?',
+      //   'phone = ?',
+      //   'is_active = ?',
+      //   'company_id = ?',
+      // ];
+      await conn.execute(
+        `UPDATE users
+            SET full_name = ?, email = ?, password = ?, role = ?, phone = ?, is_active = ?, company_id = ?
+          WHERE id = ?`,
+        [fullName, email, password, role, userPhone, isActive ? 1 : 0, userCompanyId, existing.id]
+      );
+      // const params = [
+      //   fullName,
+      //   email,
+      //   role,
+      //   userPhone,
+      //   isActive ? 1 : 0,
+      //   userCompanyId,
+      // ];
 
       await conn.commit();
       return { created: false, user: { ...userData, id: existing.id } };
